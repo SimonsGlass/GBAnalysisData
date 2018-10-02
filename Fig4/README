@@ -1,0 +1,5 @@
+Files contain data plotted in Fig 4; fit values from the four lowest temperatures of Fig 3.
+
+Svalues.txt - The softness values
+Enormalizedvalues.txt - Corresponding energy, normalized as on Fig 4 axis
+Sigmavalues.txt - Corresponding prefactor of the fit (see Eq. 1)
