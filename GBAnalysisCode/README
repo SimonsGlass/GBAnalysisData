@@ -1,4 +1,4 @@
-This is the version uploaded to https://github.com/SimonsGlass/GBAnalysisCode 
+This is the version uploaded to https://github.com/SimonsGlass/GBAnalysisData
 
 Softness code
 =============
@@ -21,7 +21,7 @@ Tristan A. Sharpa, Spencer L. Thomas, Ekin D. Cubuk,
 Samuel S. Schoenholz, David J. Srolovitz, and Andrea J. Liu
 and submitted to PNAS in 2018.
 
-Updated and cleaner code is available elsewhere!
+Updated and cleaner code is available elsewhere.
 
 Files in this version of the softness code stream:
 identifyHopsv2.cpp
