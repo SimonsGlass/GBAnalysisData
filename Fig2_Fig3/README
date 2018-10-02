@@ -1,0 +1,20 @@
+
+pR*.txt files contain data plotted in Fig 2 and Fig 3 concerning the number of atoms of a particular softness and the fraction of atoms that rearrange.
+
+dataset labels refer to the simulation temperature.
+dset50 - 463K
+dset51 - 556K
+dset52 - 620K
+dset53 - 694K
+dset54 - 756K
+dset55 - 834K
+
+bincenters - softness value of the bin
+numinbin - number of atoms in the bin
+frachopping - fraction of atoms in the bin that hop
+
+CNA refers to which common-neighbor-analysis neighborhoods are included
+CNA-1 - no filtering based on CNA
+CNA0 - only non-FCC atoms included
+CNA10 - only atoms further than 3 Angstroms from FCC atoms included
+
