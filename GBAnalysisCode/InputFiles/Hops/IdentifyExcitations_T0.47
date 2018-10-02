@@ -1,0 +1,8 @@
+Number 10000
+Temperature 0.47
+Seed 0
+Frames {12000,12000000,400}
+Shift 800
+Cutoff 0.02
+Window 5
+end

@@ -1,0 +1,140 @@
+QQ
+
+Example softness code input file.
+The format is "variable_name variable_value" on one line.
+
+Comments like this one are allowed between the comment tokens.
+Each token qq (in CAPS) toggles the comment mode on or off.
+Caution: each qq must be separated from other words to be a token.
+Thus "qqHELLOqq" is not a comment, but "qq HELLO qq" is a comment.
+
+Any lines after the label "fileend" (in CAPS) will be ignored.
+
+2016.10.04 T. Sharp
+
+QQ
+
+
+
+QQ ******** Find Hops ******** QQ
+
+QQ Where to find the data with atom positions. Also, where files will be saved. QQ
+QQ The frame number is placed between: DataFilePath/InputFilePrefix.1528120.InputFileSuffix QQ
+DataFilePath  ./sampledata
+InputFilePrefix fcc
+InputFileSuffix dump
+
+QQ Number of atoms QQ
+Number 256
+
+QQ First frame should be actual first frame to be used in the phop calulcation QQ
+Frames {1528120, 1530100, 20}
+
+QQ threshold which phop exceeds to be called an event QQ
+HopCutoff 0.25
+
+QQ number of frames in the window, tR/2 QQ
+HopWindowNFrames 4
+
+
+
+QQ ******** Construct Training Set ******** QQ
+
+QQ This is used as an output file label QQ
+OutFileTag myrun01
+
+QQ For construct training Sets draw random samples from list where p hop > thresh and phop > hop cutoff QQ 
+Samples 6
+QQ  Commonly 1000's of samples are used QQ
+QQ  "Filenames and SVM need to know how many sampled points there are"  QQ
+
+QQ ONE HALF of this value must be a valid frame spacing QQ
+SlowTime 1600
+QQ Units are the file IDs, which in Spencer Thomas' case is femtoseconds QQ
+
+QQ Another phop cutoff threshold QQ
+ExcitationCutoff 0.50
+
+QQ We're going to train on frames [StartFrame ... EndFrame] where phop should be defined at all of the times QQ
+QQ Note that a slow particle may come from slowTime/2 after this range, see code QQ
+QQ 1528420 leaves 300 fs for Window A, since the first data frame is 1528120 QQ
+QQ The code performs a check that start frame + window is not past the end of phop definitions QQ
+StartFrame 1528200
+
+QQ May only be as large as last frame where phop is defined.  Otherwise unknown whether particles rearranged. QQ
+QQ Code will explain that in an error message if this is ignored. QQ
+EndFrame 1530000
+QQ 1529820 would mean that 1530100 is the last one that is relevant for window 300 fsec for rearranging or nonrearranging particles QQ
+
+
+QQ Start Of Symmetry Functions QQ
+QQ The distance out at which to stop including the contributions QQ
+QQ RadialMu {1.0,1.5}  At left is my Nickel default, the next line is for the sample input following QQ
+RadialMu {2.3,2.35,2.4, 2.45, 2.5}
+RadialSigma 0.025
+
+QQ Contributions are triangles of neighbors of atom i.  exsi=decay length of perimeter importance. eta=1/exsi^2. QQ
+QQ Next is my Nickel default angular structure functions QQ
+
+QQ
+AngularEta {1., 0.82644628, 0.69444444, 0.59171598, 0.51020408, 0.44444444, 0.390625, 0.34602076, 0.30864198, 0.27700831, 0.25, 0.22675737, 0.20661157, 0.18903592, 0.17361111, 0.16, 0.14792899, 0.13717421, 0.12755102, 0.11890606, 0.11111111, 0.10405827, 0.09765625, 0.09182736, 0.08650519, 0.08163265, 0.07716049, 0.07304602, 0.06925208, 0.06574622, 0.0625, 0.0594884, 0.05668934, 0.05408329, 0.05165289, 0.04938272, 0.04725898, 0.04526935, 0.04340278, 0.04164931, 0.04, 0.03844675, 0.03698225, 0.03559986, 0.03429355, 0.03305785, 0.03188776, 0.0307787, 0.02972652, 0.02872738, 0.02777778, 0.0268745, 0.02601457, 0.02519526} 
+Zeta {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.,2.1,2.2,2.3,2.4,2.5,2.6,2.7,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.,2.1,2.2,2.3,2.4,2.5,2.6,2.7}  
+Lambda {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1} 
+QQ
+
+QQ The next line is for the sample input following QQ
+AngularEta {0.01}
+Zeta         {1}
+Lambda       {-1}
+
+QQ In my data, FCC nn are ~2.3 Angstrom.  2nn are ~3.24.  3nn are ~4.23 QQ
+
+QQ this is passed to CSimpleGrid. max pair interaction range. max possible range of the symmetry functions QQ
+RadDistCutoff  3.73
+
+QQ Need all neighbors within this distance to compute contributions to the angular structure functions QQ
+AngularCutoff 3.73
+
+QQ I see that construct Training Set .cpp expects IncludCNA QQ
+
+IncludeCNA 0
+
+QQ  Seed to decide what random frames to pull.  Then becomes file name QQ
+
+Seed 0 
+
+
+QQ End Of Symmetry Functions (automatically inserted using ending label) QQ
+
+
+
+QQ ******** Train the SVM ******** QQ
+
+QQ   "Related to validation accuracy but also gets squared before" QQ
+QQ   "libsvm input." QQ
+C   1.4
+
+QQ  "During testing, to exclude e.g. the 3rd and 4th structure function, use ExcludedFunctions {3,4}" QQ
+QQ  If only one element, will not exclude anything, so set to -1 to not exclude anything. QQ
+ExcludedFunctions {-1}
+
+QQ Check The Output.  Divide the excitations into this many subsets for independent verification. QQ
+QQ Set to 0 to save the SVM model to file. QQ
+CrossValidation 10
+
+QQ  "gamma for svm" QQ
+gamma 1.0
+
+Kernel LINEAR
+
+QQ ************** Assign Softness ************ QQ
+
+QQ We may want to calculate the instantaneous softness of all frames QQ
+QQ Or just the ones where phop is defined QQ
+SoftnessFrames {1528120, 1530100, 20}
+
+FILEEND
+
+
+
+

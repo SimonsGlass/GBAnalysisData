@@ -1,0 +1,57 @@
+This is the version uploaded to https://github.com/SimonsGlass/GBAnalysisCode 
+
+Softness code
+=============
+
+A machine learning approach to identifing particles
+with a local structure of interest in a material.
+
+Under initial development by A. J. Liu Group and at 
+University of Pennsylvania and E. Kaxiras Group at 
+Harvard University and collaborators.
+
+
+Status
+======
+
+This version of the softness code was taken from a development branch by Tristan A. Sharp
+during the 2016 analysis for the manuscript,
+"Machine learning determination of atomic dynamics at grain boundaries"
+Tristan A. Sharpa, Spencer L. Thomas, Ekin D. Cubuk, 
+Samuel S. Schoenholz, David J. Srolovitz, and Andrea J. Liu
+and submitted to PNAS in 2018.
+
+Updated and cleaner code is available elsewhere!
+
+Files in this version of the softness code stream:
+identifyHopsv2.cpp
+constructTrainingSetHopsv2_Ni.cpp
+trainSVM.cpp
+assignSoftnessField.cpp
+
+Installation Notes
+==================
+
+Each file in the main directory X.cpp has a 
+makefile_X and is compiled to binary xX with:
+make -f makefile_X
+The first line of each makefile should point to the 
+directory of the source code.
+
+An example run can be found in sampleinputs/ folder.  
+From there, type:
+../xX Inputs
+and output will be generated in the sampledata 
+subfolder.
+
+
+Code Authors
+=======
+
+Ekin Dogus Cubuk
+Sam S. Schoenholz
+Carl P. Goodrich
+Daniel Sussman
+Tristan A. Sharp
+
+tsharp@sas.upenn.edu

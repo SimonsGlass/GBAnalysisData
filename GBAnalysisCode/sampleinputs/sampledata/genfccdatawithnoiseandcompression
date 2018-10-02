@@ -1,0 +1,105 @@
+#!/bin/bash
+# Generate dump files, all with a FCC lattice
+# The name of the files come from the file listoffilenames
+# The header for the dump file comes from the file header
+# Since in scaled units [0,1), 
+# Tristan Sharp 5/5/2016
+
+# Position of timestep in the filename, and position of last digit of timestep
+tsteppos=5
+tstependpos=11
+# Can compact a box of some width of FCC cells near the origin.  
+compacteddomainsize=2
+# Can also permute the atoms in those cells after a certain frame.
+frametopermute=1529120
+# This becomes the length of the system domain cube size in the header file
+systemlength=8.0 
+# When echoing to bc, augment "echo" to first print: scale=5;
+echoscale='echo scale=5;'
+# Can add small noise to atomic positions.
+noise () {
+    amplitude=$($echoscale 0.01/$systemlength | bc)
+    #echo am $amplitude
+    randomdig=$((1+ $(echo $RANDOM | cut -c1) )) # if digit were 0 then bc prints no sig figs which confuses jamming code
+    #echo ra $randomdig
+    echo $($echoscale $randomdig*$amplitude | bc)
+}
+
+
+# This is the FCC unit cell length, scaled units
+Anot=$($echoscale 2.0/$systemlength | bc) 
+# This is the compacted length, scaled units
+Aprime=$($echoscale 1.8/$systemlength | bc) 
+
+
+# Loop through file names and create a lattice in each of the files
+for ifile in $(cat listoffilenames ); do
+    echo $ifile
+
+    # The header template is saved in a file called header.  Number of atoms set manually there.
+    cp -ip header ${ifile}
+    timestep=$(echo $ifile | cut -c${tsteppos}-${tstependpos})
+    echo $timestep " is extracted from filename string as the time step"
+    sed -i 's/MYTIMESTEP/'${timestep}'/' ${ifile}
+    sed -i 's/MYCUBESIZE/'${systemlength}'/' ${ifile}
+
+    id=0
+    for k in 0 1 2 3; do
+        for j in 0 1 2 3; do
+            for i in 0 1 2 3; do
+
+                id=$((id+1))
+                permute=0
+                A=$Anot
+
+                # If we are in the compactified region, compact and at some time permute
+                if [ "$i" -lt "$compacteddomainsize" ]; then 
+                    if [ "$j" -lt "$compacteddomainsize" ]; then 
+                        if [ "$k" -lt "$compacteddomainsize" ]; then 
+                            A=$Aprime
+                            if [ "$timestep" -ge "$frametopermute" ]; then
+                                permute=1
+                            fi
+
+                        fi
+                    fi
+                fi
+
+                # Lower corner of the unit cell
+                x=$($echoscale $A*$i+$(noise) | bc)
+                y=$($echoscale $A*$j+$(noise) | bc)
+                z=$($echoscale $A*$k+$(noise) | bc)
+                idwrite=$((id+permute))
+                echo $idwrite $x $y $z >> $ifile
+
+                # X-face
+                id=$((id+1))
+                x=$($echoscale $A*$i+$(noise) | bc)
+                y=$($echoscale $A'*('$j'+0.5)+'$(noise) | bc)
+                z=$($echoscale $A'*('$k'+0.5)+'$(noise) | bc)
+                idwrite=$((id-permute))
+                echo $idwrite $x $y $z >> $ifile
+
+                # Y-face
+                id=$((id+1))
+                x=$($echoscale $A'*('$i'+0.5)+'$(noise) | bc)
+                y=$($echoscale $A*$j+$(noise) | bc)
+                z=$($echoscale $A'*('$k'+0.5)+'$(noise) | bc)
+                idwrite=$((id+permute))
+                echo $idwrite $x $y $z >> $ifile
+
+                # Z-face
+                id=$((id+1))
+                x=$($echoscale $A'*('$i'+0.5)+'$(noise) | bc)
+                y=$($echoscale $A'*('$j'+0.5)+'$(noise) | bc)
+                z=$($echoscale $A*$k+$(noise) | bc)
+                idwrite=$((id-permute))
+                echo $idwrite $x $y $z >> $ifile
+
+            done
+        done
+    done
+
+done
+
+
