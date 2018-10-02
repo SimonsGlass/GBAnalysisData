@@ -1,0 +1,93 @@
+# This script computes time-averaged quantities at a target temperature given an input microstructure
+# In our case, the input was restart files produced by polyAnnealAl.lammps and polyAnnealAlCont.lammps
+
+log ${workingDir}/output_runCont.log
+
+# Setting up physical system
+units        metal
+dimension    3
+boundary     p p p
+
+variable temperature  equal  ${inputTemp}
+variable massAl equal 26.981539
+lattice fcc 4.02		  
+
+atom_style 	    atomic
+
+
+# read input configuration
+read_restart ${workingDir}/relaxed.*.restart
+
+region whole block INF INF INF INF INF INF units lattice
+group 			all   region whole  
+mass			1		${massAl}
+
+thermo 1000
+# calculate total stress in GPa
+variable p1 equal "-pxx/10000"
+variable p2 equal "-pyy/10000"
+variable p3 equal "-pzz/10000"
+variable p4 equal "-pyz/10000"
+variable p5 equal "-pxz/10000"
+variable p6 equal "-pxy/10000"
+
+neighbor   2.0 bin
+neigh_modify every 1 delay 5 check yes
+
+# EAM potential
+pair_style eam/alloy
+pair_coeff * * /data/p_srol/thospe/Al1.eam.fs Al
+
+# Compute stress, energy, csym, cna
+compute csym all centro/atom fcc
+compute potE all pe/atom 
+compute sigma all stress/atom virial
+compute totalE all reduce sum c_potE
+compute cna all cna/atom 3.45708
+
+# compute unwrapped coordinates for time-averaging
+compute xu all property/atom xu 
+compute yu all property/atom yu 
+compute zu all property/atom zu
+
+# ramp to target temp. 756K was the temperature of the input annealed microstructure
+fix 1 all npt temp 756 ${temperature} 1 x 0 0 1 y 0 0 1 z 0 0 1
+run 20000
+unfix 1 
+
+# equilibrate at target temp
+fix 1 all npt temp ${temperature} ${temperature} 1 x 0 0 1 y 0 0 1 z 0 0 1
+run 20000
+
+# compute time-averaged quantities
+fix aveX all ave/atom 10 10 100 c_xu
+fix aveY all ave/atom 10 10 100 c_yu
+fix aveZ all ave/atom 10 10 100 c_zu
+fix aveCsym all ave/atom 10 10 100 c_csym
+fix aveEnergy all ave/atom 10 10 100 c_potE
+fix aveSigma all ave/atom 10 10 100 c_sigma[1] c_sigma[2] c_sigma[3] c_sigma[4] c_sigma[5] c_sigma[6] 
+
+variable X atom f_aveX
+variable Y atom f_aveY
+variable Z atom f_aveZ
+
+# output non-averaged atomic quantities
+dump cfgDump all cfg 1000 ${workingDir}/trainingAnneal.*.cfg &
+id type xs ys zs xu yu zu c_csym c_potE c_sigma[1] c_sigma[2] & 
+   c_sigma[3] c_sigma[4] c_sigma[5] c_sigma[6] c_cna
+dump_modify cfgDump element Al
+dump_modify cfgDump sort id
+
+# output time-averaged atomic quantities
+dump aveDump all custom 100 ${workingDir}/trainingAve.*.cfg &
+id type v_X v_Y v_Z f_aveCsym f_aveEnergy &
+f_aveSigma[1] f_aveSigma[2] f_aveSigma[3] f_aveSigma[4] f_aveSigma[5] f_aveSigma[6] c_cna
+dump_modify aveDump element Al
+dump_modify aveDump sort id
+
+run 10000
+
+undump aveDump
+undump cfgDump
+
+write_data ${workingDir}/*.data

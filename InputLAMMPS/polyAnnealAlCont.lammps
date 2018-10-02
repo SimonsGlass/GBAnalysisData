@@ -1,0 +1,75 @@
+# this script continues an anneal at a specified temperature. it takes as input a restart file produced by 
+# polyAnnealAl.lammps
+
+log ${workingDir}/output_runCont.log
+
+variable temperature  equal  ${inputTemp}
+
+variable massAl equal 26.981539
+# Setting up physical system
+units        metal
+dimension    3
+boundary     p p p
+
+atom_style 	    atomic
+
+lattice fcc 4.02	
+
+read_restart ${dataDir}/annealed.*.restart
+
+region whole block INF INF INF INF INF INF units lattice
+group 			all   region whole  
+mass			1		${massAl}
+
+thermo 5000
+variable p1 equal "-pxx/10000"
+variable p2 equal "-pyy/10000"
+variable p3 equal "-pzz/10000"
+variable p4 equal "-pyz/10000"
+variable p5 equal "-pxz/10000"
+variable p6 equal "-pxy/10000"
+
+neighbor   2.0 bin
+neigh_modify every 1 delay 0 check yes
+
+pair_style eam/alloy
+pair_coeff * * /data/p_srol/thospe/Al1.eam.fs Al
+
+compute csym all centro/atom fcc
+compute potE all pe/atom 
+compute sigma all stress/atom virial
+compute totalE all reduce sum c_potE
+compute cna all cna/atom 3.45708
+
+# output atomic data
+dump cfgDump all cfg 10000 ${workingDir}/annealed.*.cfg &
+id type xs ys zs c_csym c_potE c_sigma[1] c_sigma[2] & 
+   c_sigma[3] c_sigma[4] c_sigma[5] c_sigma[6] c_cna
+dump_modify cfgDump element Al
+dump_modify cfgDump sort id
+
+# run at target temperature and allow box to expand and contract to relax stress 
+fix 1 all npt temp ${temperature} ${temperature} 1 x 0 0 1 y 0 0 1 z 0 0 1
+
+# loop 10 times
+variable a loop 10
+label loop
+
+# write a restart file every 10000 timesteps
+run 10000
+write_restart ${workingDir}/annealed.*.restart
+
+next a 
+jump ${workingDir}/polyAnnealAlCont.lammps loop
+
+undump cfgDump
+
+# output quenched atomistic data
+dump quenchDump all cfg 20000 ${workingDir}/miniQuench.*.cfg &
+id type xs ys zs c_csym c_potE c_sigma[1] c_sigma[2] & 
+   c_sigma[3] c_sigma[4] c_sigma[5] c_sigma[6] c_cna
+dump_modify quenchDump element Al
+dump_modify quenchDump sort id
+
+# quench
+minimize 1e-12 1e-12 50000 200000

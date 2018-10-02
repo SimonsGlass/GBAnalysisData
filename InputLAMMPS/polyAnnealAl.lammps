@@ -1,0 +1,101 @@
+# this script reads an initial polycrystalline microstructure (in our case, one produced by taking a voronoi tesselation
+# of points generated with a poisson process, evolving that microstructure with an isotropic continuum grain growth 
+# (curvature flow) model, then populating the grains with atoms in randomly-oriented FCC structures. It then ramps
+# the system up to some target temperature with zero external stress, and begins annealing at that target temperature.
+
+log ${workingDir}/output_run.log
+
+# dump/thermo frequency
+variable dump_every		equal 10000
+variable thermo_every	equal 2000
+
+variable temperature  equal  ${inputTemp}
+
+variable massAl equal 26.982
+variable etol  	equal 1.0e-11
+variable ftol  	equal 1.0e-11
+
+variable iter  	equal 5000
+variable feval 	equal 20000
+
+variable latparam equal 4.025
+
+# Setting up physical system
+units        metal
+dimension    3
+boundary     p p p
+
+atom_style 	    atomic
+lattice			fcc		${latparam}
+region whole block 0 400 0 400 0 400 units lattice 
+create_box 1 whole
+
+# read in the initial microstructure
+read_dump ${workingDir}/initial.dump 0 x y z box yes add yes scaled no#yes
+
+# ensure initial timestep is 0
+reset_timestep 0
+
+
+group 			all   region whole  
+mass			1		${massAl}
+
+neighbor   2.0 bin
+neigh_modify every 1 delay 5 check yes
+
+pair_style eam/alloy
+pair_coeff * * /data/p_srol/thospe/Al1.eam.fs Al
+
+# delete overlapping atoms
+delete_atoms overlap 1.5 all all
+
+# Compute stress, energy, csym, cna 
+
+compute csym all centro/atom fcc
+compute potE all pe/atom 
+compute sigma all stress/atom virial
+compute aveE all reduce ave c_potE
+
+thermo_style custom step etotal temp c_aveE vol pxx pyy pzz
+thermo ${thermo_every}
+
+# Initial relaxation: first run an energy minimization to insure reasonable initial grain boundaries, then run at 
+# finite temperature, and relax again. This is to minimize the influence of the procedure that produced the initial
+# microstructure 
+velocity all create ${inputTemp} 4828348 rot yes dist gaussian
+fix brelax all box/relax iso 0.0 vmax 0.001
+
+minimize 1e-9 1e-9 ${iter} ${feval}
+delete_atoms overlap 2. all all
+unfix brelax
+
+# equilibrate target temperature 
+fix 1 all npt temp ${inputTemp} ${inputTemp} 1 x 0 0 1 y 0 0 1 z 0 0 1 
+
+# output atomistic data
+dump cfg_dump all cfg 10000 ${workingDir}/annealing.*.cfg &
+id type xs ys zs c_csym c_potE c_sigma[1] c_sigma[2] c_sigma[3] &
+c_sigma[4] c_sigma[5] c_sigma[6]
+dump_modify cfg_dump element Al
+dump_modify cfg_dump sort id
+
+# start anneal
+variable a loop 15
+label loop
+# write restart file every 10000 steps
+run 10000
+write_restart ${workingDir}/relaxed.*.restart
+
+next a
+jump ${workingDir}/polyAnnealAl.lammps loop
+
+undump cfg_dump
+
+# output quench
+dump cfg_dump all cfg 2000 ${workingDir}/miniQuench.*.cfg &
+id type xs ys zs c_csym c_potE c_sigma[1] c_sigma[2] c_sigma[3] &
+c_sigma[4] c_sigma[5] c_sigma[6]
+dump_modify cfg_dump element Al
+dump_modify cfg_dump sort id
+
+minimize ${etol} ${ftol} ${iter} ${feval}

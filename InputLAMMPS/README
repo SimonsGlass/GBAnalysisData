@@ -1,0 +1,7 @@
+Here are the three main scripts.
+
+polyAnnealAl.lammps: read the initial microstructure and begin the anneal.
+polyAnnealAlCont.lammps: Continue the anneal. Can be run repeatedly for as long as desired. 
+trainingMishinAveAl: Compute the time-averaged quantities
+
+All were run with the April 2013 version of LAMMPS
